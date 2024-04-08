@@ -120,12 +120,31 @@ The solution to the **second challenge** has been built with python modules unde
 - [model.py](src/model.py) contains the `DiamondPricePredictor` class which lets you easily train the model with fresh data and make predictions, with the option of generating an explanation for each sample. The class automatically finds the best hyperparameters using grid search. The explanations are wrapped in the `PredictionExplanation` and `DecisionStep` classes.
 - [constants.py](src/constants.py) contains some default and constant values that can be overwritten to reflect on the whole pipeline.
 
-An example of running the whole pipeline is show below:
+An example of running the whole training pipeline is show below:
 ```py
 from src.dataset import DiamondsDataset
 from src.model import DiamondPricePredictor
 
+# we can give as many csv files as we want to build the training dataset
+dataset = DiamondsDataset.from_csv('datasets/diamonds/diamonds.csv',
+                                   'datasets/diamonds/fresh_diamonds_data.csv')
 
+# the best model configuration is found with grid search
+model = DiamondPricePredictor.from_grid_search_cv(dataset)
+```
+
+If we want keep a portion of the data for testing purposes and predict prices with our model,
+together with explanations of the why behind every price tag, we can do as follow:
+```py
+from src.dataset import DiamondsDataset, load_csv_data
+from src.model import DiamondPricePredictor
+
+train_set, test_set = DiamondsDataset.from_csv(load_csv_data('datasets/diamonds/diamonds.csv'))
+
+model = DiamondPricePredictor.from_grid_search_cv(train_set)
+
+predictions = model.predict(test_set)
+explanations = model.predict_explain(test_set)
 ```
 
 
