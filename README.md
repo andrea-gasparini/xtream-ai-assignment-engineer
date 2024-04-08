@@ -111,9 +111,13 @@ python -m ipykernel install --user --name=xtream
 
 ### Solution structure
 
+#### Challenge 1
+
 The **first challenge** has been addressed in the following two notebooks:
 - [data_exploration.ipynb](notebooks/data_exploration.ipynb) containing the exploratory data analysis, the data preprocessing and encoding and some visual insights on the data.
 - [model_selection.ipynb](notebooks/model_selection.ipynb) containing the experimentation performed to find a good model for the diamonds' prices prediction, together with reasoning and step-by-step explanations of the why behind every price tag.
+
+#### Challenge 2
 
 The solution to the **second challenge** has been built with python modules under the `src/` folder.
 - [dataset.py](src/dataset.py) contains the `DiamondsDataset` class that gives us a structured way to handle the data and performs all the necessary preprocessing and encodings steps.
@@ -147,5 +151,80 @@ predictions = model.predict(test_set)
 explanations = model.predict_explain(test_set)
 metrics = model.evaluate(test_set, predictions)
 ```
+#### Challenge 3
 
+For the **third challenge**, a small Flask app has been built in [app.py](src/app.py) to make the whole pipeline available as REST APIs.
+It can be run with:
+
+```bash
+flask --app src.app run
+```
+
+##### Predict Price
+Endpoint: `/predict`
+
+Method: `GET`
+
+Request Body: JSON list of diamond characteristics (in the format of DiamondSample dataclass instances).
+
+Returns: Predicted prices for the input samples.
+
+Return Type: JSON list of floats.
+
+##### Predict Price with Explanation
+Endpoint: `/predict-explain`
+
+Method: `GET`
+
+Request Body: JSON list of diamond characteristics (similar to the `/predict` endpoint).
+
+Returns: Predicted prices and decision steps for the input samples.
+
+Return Type: JSON list of objects, where each object contains the predicted price and the decision steps involved in the prediction.
+
+##### Re-train the Model with specific datasets
+Endpoint: `/train`
+
+Method: `POST`
+
+Request Body: JSON list of strings representing the dataset filenames to be used for training.
+
+Returns: Model evaluation metrics.
+
+Return Type: JSON object with evaluation metrics.
+
+##### List available Datasets
+Endpoint: `/datasets`
+
+Method: `GET`
+
+Returns: A list of available dataset filenames within the datasets directory.
+
+Return Type: JSON list of strings
+
+##### Manage individual Dataset
+Endpoint: `/datasets/<dataset_name>`
+
+Methods: `GET`, `PUT`, `DELETE`
+
+Parameters: dataset_name (URL parameter): Name of the dataset file.
+
+Request Body:
+- PUT: JSON list of diamond characteristics (in the format of DiamondSample dataclass instances) to create the dataset with.
+
+Returns:
+- GET: The contents of the specified dataset.
+- PUT: Confirmation of dataset creation or update.
+- DELETE: Confirmation of dataset deletion.
+
+Return Type:
+- GET: JSON list of dictionaries representing the dataset rows.
+- PUT/DELETE: String message.
+
+##### Notes
+All endpoints return "Invalid method" if an unsupported HTTP method is used.
+
+The `/datasets/<dataset_name>` `PUT` method and both predict endpoints (`/predict` and `/predict-explain`) expect a request body in JSON format. Incorrect or incomplete data structures result in an error message and a 400 Bad Request status code.
+
+The `/train` endpoint requires the request body to be a list of dataset names available within the specified datasets directory. Absence of any listed dataset in the directory will result in an error message and a 400 Bad Request status code.
 
