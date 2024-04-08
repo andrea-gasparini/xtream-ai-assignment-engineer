@@ -193,14 +193,17 @@ class DiamondPricePredictor:
         
         return self.model.predict(data.X if isinstance(data, DiamondsDataset) else data)
         
-    def evaluate(self, data: pd.DataFrame | np.ndarray | DiamondsDataset,
+    def evaluate(self, data: pd.Series | np.ndarray | DiamondsDataset,
                  predictions: Optional[np.ndarray] = None) -> dict:
         
-        if not isinstance(data, pd.DataFrame | np.ndarray | DiamondsDataset):
-            raise ValueError('The data must be a DataFrame, numpy array or DiamondsDataset object.')
+        if not isinstance(data, pd.Series | np.ndarray | DiamondsDataset):
+            raise ValueError('The data must be a Series, numpy array or DiamondsDataset object.')
         
         if predictions is None:
             predictions = self.predict(data)
+        
+        if isinstance(data, DiamondsDataset):
+            data = data.y
         
         mae = mean_absolute_error(data, predictions)
         mse = mean_squared_error(data, predictions)

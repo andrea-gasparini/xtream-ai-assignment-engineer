@@ -1,7 +1,7 @@
 from src.constants import RANDOM_STATE, TEST_SIZE, Y_COLUMN, DATASET_RAW_FILE
 
 from sklearn.model_selection import train_test_split as sklearn_train_test_split
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 import pandas as pd  
 
@@ -53,7 +53,7 @@ class DiamondsDataset:
     X : pd.DataFrame
         The features of the dataset.
         
-    y : pd.Series
+    y : Optional[pd.Series]
         The target of the dataset.
     """
 
@@ -172,14 +172,14 @@ def clean_data(data: pd.DataFrame, remove_duplicates: bool = False) -> pd.DataFr
     # null values
     data.drop(data[data.isnull().any(axis=1)].index, inplace=True)
     # negative prices
-    data.drop(data[data['price'] < 0].index, inplace=True)
+    if 'price' in data: data.drop(data[data['price'] < 0].index, inplace=True)
     # negative dimensions
     data.drop(data[(data['x'] <= 0) | (data['y'] <= 0) | (data['z'] <= 0)].index, inplace=True)
     
     return data
 
 
-def features_target_split(data: pd.DataFrame, y_column: str = Y_COLUMN) -> Tuple[pd.DataFrame, pd.Series]:
+def features_target_split(data: pd.DataFrame, y_column: str = Y_COLUMN) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
     """
     Split the data into features and target.
     
@@ -194,8 +194,11 @@ def features_target_split(data: pd.DataFrame, y_column: str = Y_COLUMN) -> Tuple
     -------
     Tuple[pd.DataFrame, pd.Series]
         A tuple containing the features and target as pandas DataFrame and Series respectively.
-    """    
-    return data.drop(columns=[y_column]), data[y_column]
+    """
+    if y_column in data.columns:
+        return data.drop(columns=[y_column]), data[y_column]
+    else:
+        return data, None
 
 
 def train_test_split(data: pd.DataFrame, test_size: float = TEST_SIZE,
