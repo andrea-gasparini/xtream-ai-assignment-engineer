@@ -1,6 +1,13 @@
-from src.constants import RANDOM_STATE, DEFAULT_HPARAMS
+from src.constants import (
+    RANDOM_STATE,
+    DEFAULT_HPARAMS,
+    DEFAULT_GRID_SEARCH_PARAM_GRID,
+    DEFAULT_GRID_SEARCH_CV,
+    DEFAULT_GRID_SEARCH_SCORING_STRATEGIES
+)
 from src.dataset import DiamondsDataset, Dataset
 
+from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeRegressor
 from dataclasses import dataclass
 from typing import List
@@ -78,6 +85,74 @@ class DiamondPricePredictor:
 
     def __init__(self, random_state: int = RANDOM_STATE, hparams: dict = DEFAULT_HPARAMS) -> None:
         self.model = DecisionTreeRegressor(**hparams, random_state=random_state)
+        
+    @classmethod
+    def from_grid_search_cv(cls, dataset: DiamondsDataset | Dataset,
+                            random_state: int = RANDOM_STATE,
+                            cv: int = DEFAULT_GRID_SEARCH_CV,
+                            param_grid: dict = DEFAULT_GRID_SEARCH_PARAM_GRID,
+                            scoring = DEFAULT_GRID_SEARCH_SCORING_STRATEGIES) -> 'DiamondPricePredictor':
+        """
+        Perform a grid search cross-validation to find the best hyperparameters for the model.
+
+        Parameters
+        ----------
+        dataset : DiamondsDataset or Dataset
+            The dataset containing the training data.
+            If `dataset` is an instance of `DiamondsDataset`,
+            the `train_set` attribute will be used as the training data. 
+            Otherwise, `dataset` will be used directly.
+
+        random_state : int, default=RANDOM_STATE
+            The random seed for reproducibility.
+
+        cv : int, default=DEFAULT_GRID_SEARCH_CV
+            The number of folds to use for cross-validation.
+
+        param_grid : dict, default=DEFAULT_GRID_SEARCH_PARAM_GRID
+            The hyperparameters grid to search.
+
+        scoring : str or callable or list, default=DEFAULT_GRID_SEARCH_SCORING_STRATEGIES
+            The scoring strategy(s) to use for evaluating the model performance during grid search.
+
+        Returns
+        -------
+        DiamondPricePredictor
+            A DiamondPricePredictor object with the best hyperparameters found.
+
+        Raises
+        ------
+        ValueError
+            If the dataset is not a `Dataset` or `DiamondsDataset` object.
+
+        Examples
+        --------
+        >>> from src.model import DiamondPricePredictor
+        >>> from src.dataset import DiamondsDataset
+        >>> dataset = DiamondsDataset.from_csv('datasets/diamonds/diamonds.csv')
+        >>> model = DiamondPricePredictor.from_grid_search_cv(dataset)
+        >>> predictions = model.predict(dataset.test_set)
+        >>> explanations = model.predict_explain(dataset.test_set)
+        """
+        if not isinstance(dataset, Dataset | DiamondsDataset):
+            raise ValueError('The dataset must be a Dataset or DiamondsDataset object.')
+        
+        train_set = dataset.train_set if isinstance(dataset, DiamondsDataset) else dataset
+        
+        grid_search = GridSearchCV(
+            estimator=DecisionTreeRegressor(random_state=random_state),
+            param_grid=param_grid,
+            scoring=scoring,
+            refit=scoring[0],
+            cv=cv
+        )
+        
+        grid_search.fit(train_set.X, train_set.y)
+        
+        instance = cls(hparams=grid_search.best_params_)
+        instance.model = grid_search.best_estimator_
+
+        return instance
 
     def fit(self, dataset: DiamondsDataset | Dataset) -> None:
         """
@@ -207,4 +282,6 @@ if __name__ == '__main__':
     # print(predictions)
     
     explainations = model.predict_explain(dataset.test_set)
-    print(explainations[0])
+    # print(explainations[0])
+    
+    assert model.model.get_depth() == DiamondPricePredictor.from_grid_search_cv(dataset).model.get_depth()
