@@ -1,49 +1,10 @@
 from src.constants import RANDOM_STATE, TEST_SIZE, Y_COLUMN, DATASET_RAW_FILE
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split as sklearn_train_test_split
 from typing import Tuple, List
-from dataclasses import dataclass
 
 import pandas as pd  
 
-@dataclass
-class Dataset:
-    """
-    A class to represent a dataset, split into features and target.
-    
-    Attributes
-    ----------
-    X : pd.DataFrame
-        The features of the dataset.
-    y : pd.Series
-        The target of the dataset.
-    """
-    X: pd.DataFrame
-    y: pd.Series
-    
-    @property
-    def feature_names(self) -> List[str]:
-        """Return the feature names of the dataset."""
-        return self.X.columns.tolist()
-    
-    @classmethod
-    def from_dataframe(cls, data: pd.DataFrame, y_column: str = Y_COLUMN) -> 'Dataset':
-        """
-        Create a dataset object from a pandas dataframe.
-        
-        Parameters
-        ----------
-        data : pd.DataFrame
-            The data to create the dataset from.
-        y_column : str, default=Y_COLUMN
-            The name of the target column.
-            
-        Returns
-        -------
-        Dataset
-            A dataset object containing the features and target.
-        """    
-        return cls(data.drop(columns=[y_column]), data[y_column])
     
 class DiamondsDataset:
     """
@@ -52,8 +13,6 @@ class DiamondsDataset:
     The dataset is loaded from a Pandas DataFrame and preprocessed,
     including cleaning and ordinal encoding of the categorical features.
 
-    Training and testing sets split is performed.
-    
     See `from_csv` function to create a DiamondsDataset object from a CSV file.
 
     Parameters
@@ -63,12 +22,6 @@ class DiamondsDataset:
 
     remove_duplicates : bool, default=True
         Whether to remove duplicated rows.
-
-    test_size : float, default=TEST_SIZE
-        The proportion of the data to include in the test set.
-
-    random_state : int, default=RANDOM_STATE
-        The random seed to use for reproducibility.
 
     Attributes
     ----------
@@ -94,11 +47,14 @@ class DiamondsDataset:
     COLOR_GRADE_ENCODER : dict
         A dictionary mapping color grades to ascending ordinal values for encoding.
 
-    train_set : Dataset
-        The training set of the diamonds dataset.
+    data : pd.DataFrame
+        The diamonds dataset as a Pandas DataFrame.
 
-    test_set : Dataset
-        The testing set of the diamonds dataset.
+    X : pd.DataFrame
+        The features of the dataset.
+        
+    y : pd.Series
+        The target of the dataset.
     """
 
     CUT_GRADE_SCALE = 'Fair', 'Good', 'Very Good', 'Premium', 'Ideal'
@@ -110,27 +66,19 @@ class DiamondsDataset:
     CLARITY_ENCODER = {clarity: index for index, clarity in enumerate(CLARITY_SCALE)}
     COLOR_GRADE_ENCODER = {grade: index for index, grade in enumerate(COLOR_GRADING_SCALE)}
 
-    train_set: Dataset
-    test_set: Dataset
-
-    def __init__(self, *data: pd.DataFrame, remove_duplicates: bool = True,
-                 test_size: float = TEST_SIZE, random_state: int = RANDOM_STATE) -> None:
+    def __init__(self, *data: pd.DataFrame, remove_duplicates: bool = True) -> None:
         self.data = pd.concat(data)
         self.data = clean_data(self.data, remove_duplicates=remove_duplicates)
-        self.__encode_categorical_features()
-        train_df, test_df = split_data(self.data, test_size=test_size, random_state=random_state)
-        
-        self.train_set = Dataset.from_dataframe(train_df)
-        self.test_set = Dataset.from_dataframe(test_df)
+        self.__encode_categorical_features()        
+        self.X, self.y = features_target_split(self.data)
         
     @property
     def feature_names(self) -> List[str]:
         """Return the feature names of the dataset."""
-        return self.train_set.feature_names
+        return self.X.columns.tolist()
        
     @classmethod
-    def from_csv(cls, *paths: str, remove_duplicates: bool = True, test_size: float = TEST_SIZE,
-                 random_state: int = RANDOM_STATE) -> 'DiamondsDataset':
+    def from_csv(cls, *paths: str, remove_duplicates: bool = True) -> 'DiamondsDataset':
         """
         Create a DiamondsDataset object from a CSV file.
 
@@ -142,6 +90,30 @@ class DiamondsDataset:
         remove_duplicates : bool, default=True
             Whether to remove duplicated rows.
 
+        Returns
+        -------
+        DiamondsDataset
+            A DiamondsDataset object created from the CSV file.
+            
+        Examples
+        --------
+        >>> from src.dataset import DiamondsDataset
+        >>> dataset = DiamondsDataset.from_csv('datasets/diamonds/diamonds.csv')
+        """
+        return cls(*[load_csv_data(path) for path in paths], remove_duplicates=remove_duplicates)
+        
+    @staticmethod
+    def train_test_split(*data: pd.DataFrame,
+                         test_size: float = TEST_SIZE,
+                         random_state: int = RANDOM_STATE) -> Tuple['DiamondsDataset', 'DiamondsDataset']:
+        """
+        Split the data into training and testing sets.
+
+        Parameters
+        ----------
+        data : sequence of pd.DataFrame
+            The data to split.
+
         test_size : float, default=TEST_SIZE
             The proportion of the data to include in the test set.
 
@@ -150,11 +122,16 @@ class DiamondsDataset:
 
         Returns
         -------
-        DiamondsDataset
-            A DiamondsDataset object created from the CSV file.
+        Tuple[DiamondsDataset, DiamondsDataset]
+            The training and testing sets.
+            
+        Examples
+        --------
+        >>> from src.dataset import DiamondsDataset
+        >>> train_set, test_set = DiamondsDataset.train_test_split(pd.read_csv('datasets/diamonds/diamonds.csv'), test_size=0.2)
         """
-        return cls(*[load_csv_data(path) for path in paths], test_size=test_size,
-                   remove_duplicates=remove_duplicates, random_state=random_state)
+        train_data, test_data = train_test_split(pd.concat(data), test_size=test_size, random_state=random_state)
+        return DiamondsDataset(train_data), DiamondsDataset(test_data)
 
     def __encode_categorical_features(self) -> None:
         """
@@ -202,7 +179,26 @@ def clean_data(data: pd.DataFrame, remove_duplicates: bool = False) -> pd.DataFr
     return data
 
 
-def split_data(data: pd.DataFrame, test_size: float = TEST_SIZE,
+def features_target_split(data: pd.DataFrame, y_column: str = Y_COLUMN) -> Tuple[pd.DataFrame, pd.Series]:
+    """
+    Split the data into features and target.
+    
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The data to create the dataset from.
+    y_column : str, default=Y_COLUMN
+        The name of the target column.
+        
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.Series]
+        A tuple containing the features and target as pandas DataFrame and Series respectively.
+    """    
+    return data.drop(columns=[y_column]), data[y_column]
+
+
+def train_test_split(data: pd.DataFrame, test_size: float = TEST_SIZE,
                random_state: int = RANDOM_STATE) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split the data into training and testing sets.
@@ -223,5 +219,5 @@ def split_data(data: pd.DataFrame, test_size: float = TEST_SIZE,
     Tuple[pd.DataFrame, pd.DataFrame]
         The training and testing sets.
     """
-    return train_test_split(data, test_size=test_size, random_state=random_state)
+    return sklearn_train_test_split(data, test_size=test_size, random_state=random_state)
     
