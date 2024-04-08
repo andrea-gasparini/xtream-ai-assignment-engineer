@@ -1,6 +1,7 @@
 from src.constants import RANDOM_STATE, TEST_SIZE, Y_COLUMN, DATASET_RAW_FILE
+
 from sklearn.model_selection import train_test_split
-from typing import Tuple
+from typing import Tuple, List
 from dataclasses import dataclass
 
 import pandas as pd  
@@ -19,6 +20,11 @@ class Dataset:
     """
     X: pd.DataFrame
     y: pd.Series
+    
+    @property
+    def feature_names(self) -> List[str]:
+        """Return the feature names of the dataset."""
+        return self.X.columns.tolist()
     
     @classmethod
     def from_dataframe(cls, data: pd.DataFrame, y_column: str = Y_COLUMN) -> 'Dataset':
@@ -116,6 +122,11 @@ class DiamondsDataset:
         
         self.train_set = Dataset.from_dataframe(train_df)
         self.test_set = Dataset.from_dataframe(test_df)
+        
+    @property
+    def feature_names(self) -> List[str]:
+        """Return the feature names of the dataset."""
+        return self.train_set.feature_names
        
     @classmethod
     def from_csv(cls, *paths: str, remove_duplicates: bool = True, test_size: float = TEST_SIZE,
