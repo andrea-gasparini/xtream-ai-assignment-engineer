@@ -82,4 +82,50 @@ So, ready to add some sparkle to this challenge? Let's make these diamonds shine
 ---
 
 ## How to run
-Please fill this section as part of the assignment.
+
+### Set up the environment
+
+Python >= 3.10 is required in order to correctly run the code, together with
+the dependencies listed in `requirements.txt` that can be installed as follows:
+
+```bash
+pip install -r requirements.txt
+```
+
+N.B. in order to execute the notebooks and render all the figures, it is also
+necessary to install [Graphviz](https://graphviz.org/download/).
+
+#### Anaconda environment
+
+An anaconda virtual environment can be directly created from `env.yaml`.
+```bash
+conda env create -f env.yaml
+conda activate xtream
+```
+
+If you want to run the jupyter notebooks it is also necessary to create an ipykernel
+for the conda env and activate it in the kernel tab of the notebook (Kernel>Change kernel>xtream).
+```bash
+python -m ipykernel install --user --name=xtream
+```
+
+### Solution structure
+
+The **first challenge** has been addressed in the following two notebooks:
+- [data_exploration.ipynb](notebooks/data_exploration.ipynb) containing the exploratory data analysis, the data preprocessing and encoding and some visual insights on the data.
+- [model_selection.ipynb](notebooks/model_selection.ipynb) containing the experimentation performed to find a good model for the diamonds' prices prediction, together with reasoning and step-by-step explanations of the why behind every price tag.
+
+The solution to the **second challenge** has been built with python modules under the `src/` folder.
+- [dataset.py](src/dataset.py) contains the `DiamondsDataset` class that gives us a structured way to handle the data and performs all the necessary preprocessing and encodings steps.
+- [model.py](src/model.py) contains the `DiamondPricePredictor` class which lets you easily train the model with fresh data and make predictions, with the option of generating an explanation for each sample. The class automatically finds the best hyperparameters using grid search. The explanations are wrapped in the `PredictionExplanation` and `DecisionStep` classes.
+- [constants.py](src/constants.py) contains some default and constant values that can be overwritten to reflect on the whole pipeline.
+
+An example of running the whole pipeline is show below:
+```py
+from src.dataset import DiamondsDataset
+from src.model import DiamondPricePredictor
+
+
+```
+
+
