@@ -7,10 +7,11 @@ from src.constants import (
 )
 from src.dataset import DiamondsDataset, load_csv_data
 
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeRegressor
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -190,11 +191,23 @@ class DiamondPricePredictor:
         if not isinstance(data, pd.DataFrame | np.ndarray | DiamondsDataset):
             raise ValueError('The data must be a DataFrame, numpy array or DiamondsDataset object.')
         
-        if isinstance(data, pd.DataFrame | np.ndarray):
-            return self.model.predict(data)
+        return self.model.predict(data.X if isinstance(data, DiamondsDataset) else data)
         
-        if isinstance(data, DiamondsDataset):
-            return self.model.predict(data.X)
+    def evaluate(self, data: pd.DataFrame | np.ndarray | DiamondsDataset,
+                 predictions: Optional[np.ndarray] = None) -> dict:
+        
+        if not isinstance(data, pd.DataFrame | np.ndarray | DiamondsDataset):
+            raise ValueError('The data must be a DataFrame, numpy array or DiamondsDataset object.')
+        
+        if predictions is None:
+            predictions = self.predict(data)
+        
+        mae = mean_absolute_error(data, predictions)
+        mse = mean_squared_error(data, predictions)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(data, predictions)
+        
+        return { 'MAE': mae, 'MSE': mse, 'RMSE': rmse, 'R2': r2 }
         
     def predict_explain(self, data: pd.DataFrame | np.ndarray | DiamondsDataset) -> List[PredictionExplanation]:
         """

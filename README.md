@@ -145,6 +145,7 @@ model = DiamondPricePredictor.from_grid_search_cv(train_set)
 
 predictions = model.predict(test_set)
 explanations = model.predict_explain(test_set)
+metrics = model.evaluate(test_set, predictions)
 ```
 
 
