@@ -130,8 +130,8 @@ from src.dataset import DiamondsDataset
 from src.model import DiamondPricePredictor
 
 # we can give as many csv files as we want to build the training dataset
-dataset = DiamondsDataset.train_test_split('datasets/diamonds/diamonds.csv',
-                                           'datasets/diamonds/fresh_diamonds_data.csv')
+dataset = DiamondsDataset.from_csv('datasets/diamonds/diamonds.csv',
+                                   'datasets/diamonds/fresh_diamonds_data.csv')
 
 # the best model configuration is found with grid search
 model = DiamondPricePredictor.from_grid_search_cv(dataset)
@@ -143,7 +143,7 @@ together with explanations of the why behind every price tag, we can do as follo
 from src.dataset import DiamondsDataset, load_csv_data
 from src.model import DiamondPricePredictor
 
-train_set, test_set = DiamondsDataset.from_csv(load_csv_data('datasets/diamonds/diamonds.csv'))
+train_set, test_set = DiamondsDataset.train_test_split(load_csv_data('datasets/diamonds/diamonds.csv'))
 
 model = DiamondPricePredictor.from_grid_search_cv(train_set)
 
