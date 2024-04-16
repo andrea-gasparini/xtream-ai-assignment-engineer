@@ -97,7 +97,7 @@ necessary to install [Graphviz](https://graphviz.org/download/).
 
 #### Anaconda environment
 
-An anaconda virtual environment can be directly created from `env.yaml`.
+An anaconda virtual environment can be directly created with:
 ```bash
 conda create -n xtream python=3.10
 conda activate xtream
