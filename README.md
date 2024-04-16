@@ -99,8 +99,9 @@ necessary to install [Graphviz](https://graphviz.org/download/).
 
 An anaconda virtual environment can be directly created from `env.yaml`.
 ```bash
-conda env create -f env.yaml
+conda create -n xtream python=3.10
 conda activate xtream
+pip install -r requirements.txt
 ```
 
 If you want to run the jupyter notebooks it is also necessary to create an ipykernel
